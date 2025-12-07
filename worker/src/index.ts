@@ -1,8 +1,11 @@
 export interface Env {
+  /**
+   * Human readable identifier for the worker, provided via wrangler vars.
+   */
+  APP_NAME: string;
   DB: D1Database;
   SESSION_CACHE: KVNamespace;
   INTEGRATION_CACHE: KVNamespace;
-  APP_NAME: string;
   RAPIDAPI_KEY: string;
   RAPIDAPI_HOST: string;
   TELEGRAM_BOT_TOKEN: string;
