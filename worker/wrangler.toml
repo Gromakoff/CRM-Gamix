@@ -1,0 +1,15 @@
+name = "game-trade-hub-worker"
+main = "src/index.ts"
+compatibility_date = "2024-05-02"
+
+[vars]
+# RAPIDAPI_KEY = "скопируйте ключ RapidAPI"
+# TELEGRAM_BOT_TOKEN = "токен бота для уведомлений"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "game-trade-hub"
+database_id = "00000000-0000-0000-0000-000000000000" # замените на фактический ID D1
+
+[[ai]]
+binding = "AI"
