@@ -1,0 +1,31 @@
+name = "game-trade-hub-worker"
+main = "src/index.ts"
+compatibility_date = "2024-05-29"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[dev]
+port = 8787
+
+[vars]
+APP_NAME = "Game Trade Hub"
+RAPIDAPI_HOST = "justoneapi.p.rapidapi.com"
+
+[[kv_namespaces]]
+binding = "SESSION_CACHE"
+id = "11111111111111111111111111111111"
+preview_id = "session-cache-preview"
+
+[[kv_namespaces]]
+binding = "INTEGRATION_CACHE"
+id = "22222222222222222222222222222222"
+preview_id = "integration-cache-preview"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "game-trade-hub"
+database_id = "game-trade-hub"
+
+[ai]
+binding = "AI"
+model = "@cf/meta/m2m100-1.2b"
