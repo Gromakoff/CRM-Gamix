@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Game Trade Hub — Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <header class="bg-white shadow-sm sticky top-0 z-10">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <h1 class="text-xl font-semibold">Game Trade Hub</h1>
+      <nav class="flex gap-4 text-sm text-slate-700">
+        <a class="hover:text-indigo-600" href="#dashboard">Обзор</a>
+        <a class="hover:text-indigo-600" href="#showcase">Витрина</a>
+        <a class="hover:text-indigo-600" href="#warehouse">Склад</a>
+        <a class="hover:text-indigo-600" href="#stats">Статистика</a>
+        <a class="hover:text-indigo-600" href="#trends">Тренды</a>
+        <a class="hover:text-indigo-600" href="#settings">Настройки</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+    <section id="dashboard" class="bg-white rounded-xl shadow-sm p-6">
+      <h2 class="text-lg font-semibold mb-2">Обзор</h2>
+      <p class="text-sm text-slate-600">Здесь появятся карточки с суммой закупки/продаж, ожидаемой прибылью и статусом лимитов Cloudflare.</p>
+    </section>
+
+    <section id="showcase" class="bg-white rounded-xl shadow-sm p-6">
+      <h2 class="text-lg font-semibold mb-2">Витрина</h2>
+      <p class="text-sm text-slate-600">Список активных лотов. В UI будут таблицы с фильтрами по игре, типу ресурса и статусу публикации.</p>
+    </section>
+
+    <section id="warehouse" class="bg-white rounded-xl shadow-sm p-6">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-lg font-semibold">Склад</h2>
+        <button class="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-500">Добавить товар</button>
+      </div>
+      <p class="text-sm text-slate-600">Здесь будет управление карточками: цены, ссылки на Taobao, выбор площадки (FunPay).</p>
+    </section>
+
+    <section id="stats" class="bg-white rounded-xl shadow-sm p-6">
+      <h2 class="text-lg font-semibold mb-2">Статистика</h2>
+      <p class="text-sm text-slate-600">Готовим блоки для расчёта расхода, дохода и ROI по играм и площадкам.</p>
+    </section>
+
+    <section id="trends" class="bg-white rounded-xl shadow-sm p-6">
+      <h2 class="text-lg font-semibold mb-2">Тренды</h2>
+      <p class="text-sm text-slate-600">Секция для топ‑игр, динамики спроса и графиков продаж из Just One API.</p>
+    </section>
+
+    <section id="settings" class="bg-white rounded-xl shadow-sm p-6">
+      <h2 class="text-lg font-semibold mb-2">Настройки</h2>
+      <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
+        <li>RAPIDAPI_KEY для Just One API</li>
+        <li>ключи переводчиков (Yandex, Microsoft, Workers AI)</li>
+        <li>курс валют и наценки по играм</li>
+        <li>учётные записи бирж (FunPay)</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
