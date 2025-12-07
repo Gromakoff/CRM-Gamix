@@ -2,6 +2,7 @@ export interface Env {
   DB: D1Database;
   SESSION_CACHE: KVNamespace;
   INTEGRATION_CACHE: KVNamespace;
+  APP_NAME?: string;
   RAPIDAPI_KEY: string;
   RAPIDAPI_HOST: string;
   TELEGRAM_BOT_TOKEN: string;
