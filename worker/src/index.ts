@@ -13,11 +13,9 @@ type Env = {
   ADMIN_EMAIL?: string;
   ADMIN_PASSWORD?: string;
   ADMIN_SECRET?: string;
-  ADMIN_GATE_USER?: string;
   ADMIN_GATE_PASS?: string;
 };
 
-const DEFAULT_GATE_USER = 'gth-admin';
 const DEFAULT_GATE_PASSWORD = 'gth-protect-9824';
 
 const corsHeaders = new Headers({
@@ -40,19 +38,18 @@ function unauthorized(message?: string): Response {
   return json({ error: message ?? 'Требуется авторизация' }, { status: 401 });
 }
 
-function isBasicAuthorized(request: Request, user: string, password: string): boolean {
+function isBasicAuthorized(request: Request, password: string): boolean {
   const header = request.headers.get('Authorization');
   if (!header || !header.startsWith('Basic ')) return false;
   const decoded = atob(header.slice(6));
-  const [name, ...rest] = decoded.split(':');
+  const [, ...rest] = decoded.split(':');
   const pass = rest.join(':');
-  return name === user && pass === password;
+  return pass === password;
 }
 
 function protectStatic(request: Request, env: Env): Response | null {
-  const user = env.ADMIN_GATE_USER || DEFAULT_GATE_USER;
   const password = env.ADMIN_GATE_PASS || DEFAULT_GATE_PASSWORD;
-  if (isBasicAuthorized(request, user, password)) return null;
+  if (isBasicAuthorized(request, password)) return null;
   return new Response('Доступ к админке закрыт паролем.', {
     status: 401,
     headers: { 'WWW-Authenticate': 'Basic realm="GameTradeHub Admin"' },
