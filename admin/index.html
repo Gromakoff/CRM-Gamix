@@ -42,6 +42,26 @@
           </div>
         </div>
       </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6" id="statsCards">
+        <div class="p-4 rounded-lg border border-slate-100 bg-slate-50">
+          <p class="text-xs text-slate-500">Всего позиций</p>
+          <p class="text-2xl font-semibold" id="statTotal">—</p>
+        </div>
+        <div class="p-4 rounded-lg border border-slate-100 bg-slate-50">
+          <p class="text-xs text-slate-500">В корзине</p>
+          <p class="text-2xl font-semibold" id="statCart">—</p>
+        </div>
+        <div class="p-4 rounded-lg border border-slate-100 bg-slate-50">
+          <p class="text-xs text-slate-500">На складе</p>
+          <p class="text-2xl font-semibold" id="statWarehouse">—</p>
+        </div>
+        <div class="p-4 rounded-lg border border-slate-100 bg-slate-50">
+          <p class="text-xs text-slate-500">Витрина / Продано</p>
+          <p class="text-2xl font-semibold" id="statShowcase">—</p>
+          <p class="text-xs text-slate-500" id="statSold">—</p>
+        </div>
+      </div>
     </section>
 
     <section id="showcase" class="bg-white rounded-xl shadow-sm p-6">
@@ -123,28 +143,106 @@
               </tbody>
             </table>
           </div>
+          <div id="itemDetails" class="grid md:grid-cols-2 gap-4 mt-4" hidden>
+            <div class="rounded-lg border border-slate-100 p-4 bg-white">
+              <div class="flex items-center justify-between mb-2">
+                <p class="text-sm text-slate-500">Выбранный товар</p>
+                <button id="closeDetails" class="text-xs text-slate-500 hover:text-slate-700">Скрыть</button>
+              </div>
+              <h3 id="detailTitle" class="text-lg font-semibold">—</h3>
+              <p id="detailStatus" class="text-sm text-slate-600">Статус: —</p>
+              <dl class="mt-3 grid grid-cols-2 gap-2 text-sm text-slate-700">
+                <div>
+                  <dt class="text-slate-500">Закупка</dt>
+                  <dd id="detailPurchase">—</dd>
+                </div>
+                <div>
+                  <dt class="text-slate-500">Листинг</dt>
+                  <dd id="detailListing">—</dd>
+                </div>
+                <div>
+                  <dt class="text-slate-500">Продажа</dt>
+                  <dd id="detailSale">—</dd>
+                </div>
+                <div>
+                  <dt class="text-slate-500">Комиссия</dt>
+                  <dd id="detailCommission">—</dd>
+                </div>
+              </dl>
+              <p id="detailSource" class="text-sm text-slate-500 mt-2 break-all"></p>
+            </div>
+            <div class="rounded-lg border border-slate-100 p-4 bg-white">
+              <div class="flex items-center justify-between mb-2">
+                <p class="text-sm text-slate-500">История статусов</p>
+                <span id="historyCount" class="text-xs text-slate-500">—</span>
+              </div>
+              <ol id="detailHistory" class="space-y-2 text-sm text-slate-700">
+                <li class="text-slate-500">Нет событий</li>
+              </ol>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
     <section id="stats" class="bg-white rounded-xl shadow-sm p-6">
       <h2 class="text-lg font-semibold mb-2">Статистика</h2>
-      <p class="text-sm text-slate-600">Готовим блоки для расчёта расхода, дохода и ROI по играм и площадкам.</p>
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="rounded-lg border border-slate-100 p-4 bg-slate-50">
+          <p class="text-xs text-slate-500">Сумма закупки</p>
+          <p class="text-2xl font-semibold" id="statPurchase">—</p>
+        </div>
+        <div class="rounded-lg border border-slate-100 p-4 bg-slate-50">
+          <p class="text-xs text-slate-500">Сумма продаж</p>
+          <p class="text-2xl font-semibold" id="statSale">—</p>
+        </div>
+        <div class="rounded-lg border border-slate-100 p-4 bg-slate-50">
+          <p class="text-xs text-slate-500">Прибыль после комиссий</p>
+          <p class="text-2xl font-semibold" id="statProfit">—</p>
+        </div>
+      </div>
+      <div class="mt-4">
+        <p class="text-sm font-medium text-slate-700">Движение статусов (7 дней)</p>
+        <ul id="statTimeline" class="mt-2 text-sm text-slate-700 space-y-1">
+          <li class="text-slate-500">Загрузка...</li>
+        </ul>
+      </div>
     </section>
 
     <section id="trends" class="bg-white rounded-xl shadow-sm p-6">
       <h2 class="text-lg font-semibold mb-2">Тренды</h2>
-      <p class="text-sm text-slate-600">Секция для топ‑игр, динамики спроса и графиков продаж из Just One API.</p>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-slate-100 p-4 bg-slate-50">
+          <p class="text-sm font-medium text-slate-700">Добавлено за 14 дней</p>
+          <ul id="trendAdded" class="mt-2 text-sm text-slate-700 space-y-1">
+            <li class="text-slate-500">Нет данных</li>
+          </ul>
+        </div>
+        <div class="rounded-lg border border-slate-100 p-4 bg-slate-50">
+          <p class="text-sm font-medium text-slate-700">Продано за 14 дней</p>
+          <ul id="trendSold" class="mt-2 text-sm text-slate-700 space-y-1">
+            <li class="text-slate-500">Нет данных</li>
+          </ul>
+        </div>
+      </div>
     </section>
 
     <section id="settings" class="bg-white rounded-xl shadow-sm p-6">
       <h2 class="text-lg font-semibold mb-2">Настройки</h2>
-      <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
-        <li>RAPIDAPI_KEY для Just One API</li>
-        <li>ключи переводчиков (Yandex, Microsoft, Workers AI)</li>
-        <li>курс валют и наценки по играм</li>
-        <li>учётные записи бирж (FunPay)</li>
-      </ul>
+      <form id="settingsForm" class="grid md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm text-slate-600 mb-1" for="rapidApiKey">RapidAPI Key</label>
+          <input id="rapidApiKey" name="rapidApiKey" class="w-full rounded-lg border-slate-200 focus:border-indigo-400 focus:ring-indigo-200" placeholder="sk_..." />
+        </div>
+        <div>
+          <label class="block text-sm text-slate-600 mb-1" for="markupPercent">Наценка, %</label>
+          <input id="markupPercent" name="markupPercent" type="number" step="0.1" class="w-full rounded-lg border-slate-200 focus:border-indigo-400 focus:ring-indigo-200" placeholder="0" />
+        </div>
+        <div class="md:col-span-2 flex justify-end gap-2 items-center">
+          <p id="settingsHint" class="text-sm text-slate-500">—</p>
+          <button class="px-4 py-2 bg-slate-900 text-white text-sm rounded-lg hover:bg-slate-700">Сохранить настройки</button>
+        </div>
+      </form>
     </section>
   </main>
 
@@ -158,6 +256,32 @@
     const itemsTable = document.getElementById('itemsTable');
     const itemForm = document.getElementById('itemForm');
     const itemFormStatus = document.getElementById('itemFormStatus');
+    const statTotal = document.getElementById('statTotal');
+    const statCart = document.getElementById('statCart');
+    const statWarehouse = document.getElementById('statWarehouse');
+    const statShowcase = document.getElementById('statShowcase');
+    const statSold = document.getElementById('statSold');
+    const statPurchase = document.getElementById('statPurchase');
+    const statSale = document.getElementById('statSale');
+    const statProfit = document.getElementById('statProfit');
+    const statTimeline = document.getElementById('statTimeline');
+    const trendAdded = document.getElementById('trendAdded');
+    const trendSold = document.getElementById('trendSold');
+    const settingsForm = document.getElementById('settingsForm');
+    const rapidApiKeyInput = document.getElementById('rapidApiKey');
+    const markupPercentInput = document.getElementById('markupPercent');
+    const settingsHint = document.getElementById('settingsHint');
+    const detailPanel = document.getElementById('itemDetails');
+    const detailTitle = document.getElementById('detailTitle');
+    const detailStatus = document.getElementById('detailStatus');
+    const detailPurchase = document.getElementById('detailPurchase');
+    const detailListing = document.getElementById('detailListing');
+    const detailSale = document.getElementById('detailSale');
+    const detailCommission = document.getElementById('detailCommission');
+    const detailSource = document.getElementById('detailSource');
+    const detailHistory = document.getElementById('detailHistory');
+    const historyCount = document.getElementById('historyCount');
+    const closeDetails = document.getElementById('closeDetails');
 
     const statusOptions = [
       { value: 'cart', label: 'Корзина' },
@@ -165,6 +289,24 @@
       { value: 'showcase', label: 'Витрина' },
       { value: 'sold', label: 'Продано' },
     ];
+
+    const formatCurrency = (value) =>
+      value === null || value === undefined || value === ''
+        ? '—'
+        : `${Number(value).toFixed(2)} USD`;
+
+    const clearDetails = () => {
+      detailTitle.textContent = '—';
+      detailStatus.textContent = 'Статус: —';
+      detailPurchase.textContent = '—';
+      detailListing.textContent = '—';
+      detailSale.textContent = '—';
+      detailCommission.textContent = '—';
+      detailSource.textContent = '';
+      detailHistory.innerHTML = '<li class="text-slate-500">Нет событий</li>';
+      historyCount.textContent = '—';
+      detailPanel.hidden = true;
+    };
 
     apiBaseInput.value = defaultApiBase;
     apiBaseHint.textContent = defaultApiBase.includes('8787') ? 'Локальный порт Wrangler dev (8787).' : 'Адрес берётся из origin страницы.';
@@ -174,6 +316,10 @@
       if (!value) return;
       localStorage.setItem('gth_api_base', value);
       apiBaseHint.textContent = 'Сохранено.';
+      loadItems();
+      loadStats();
+      loadTrends();
+      loadSettings();
     });
 
     document.getElementById('checkHealth').addEventListener('click', async () => {
@@ -196,6 +342,7 @@
 
     async function loadItems() {
       itemsTable.innerHTML = '<tr><td colspan="5" class="px-3 py-3 text-slate-500">Загрузка...</td></tr>';
+      clearDetails();
       const query = statusFilter.value ? `?status=${encodeURIComponent(statusFilter.value)}` : '';
       try {
         const res = await fetch(`${apiBaseInput.value}/api/products${query}`);
@@ -207,7 +354,7 @@
         }
         itemsTable.innerHTML = items
           .map((item) => {
-            const price = item.listingPriceUsd ?? item.purchasePriceCny ?? '—';
+            const price = item.listingPriceUsd ?? item.salePriceUsd ?? item.purchasePriceCny ?? '—';
             const options = statusOptions
               .map((option) => `<option value="${option.value}" ${option.value === item.status ? 'selected' : ''}>${option.label}</option>`)
               .join('');
@@ -220,6 +367,7 @@
                   <div class="flex items-center gap-2">
                     <select data-role="status-select" class="rounded-lg border-slate-200 text-sm focus:border-indigo-400 focus:ring-indigo-200">${options}</select>
                     <button data-action="update-status" class="px-3 py-1.5 bg-slate-900 text-white text-xs rounded-lg hover:bg-slate-700">Обновить</button>
+                    <button data-action="open-details" class="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs rounded-lg hover:bg-slate-200">Детали</button>
                   </div>
                   <p class="text-xs text-slate-500" data-role="status-hint"></p>
                 </td>
@@ -231,20 +379,115 @@
       }
     }
 
+    async function loadItemDetails(itemId) {
+      detailPanel.hidden = false;
+      detailTitle.textContent = 'Загрузка...';
+      detailHistory.innerHTML = '<li class="text-slate-500">Обновляем историю...</li>';
+      try {
+        const res = await fetch(`${apiBaseInput.value}/api/products/${itemId}`);
+        const data = await res.json();
+        if (!res.ok || !data.item) {
+          detailTitle.textContent = data.error || 'Не удалось загрузить товар';
+          detailHistory.innerHTML = '<li class="text-rose-600">Ошибка загрузки</li>';
+          return;
+        }
+        const item = data.item;
+        detailTitle.textContent = `${item.title} (#${item.id})`;
+        detailStatus.textContent = `Статус: ${item.status ?? '—'}`;
+        detailPurchase.textContent = item.purchasePriceUsd ? `${Number(item.purchasePriceUsd).toFixed(2)} USD` : '—';
+        detailListing.textContent = item.listingPriceUsd ? `${Number(item.listingPriceUsd).toFixed(2)} USD` : '—';
+        detailSale.textContent = item.salePriceUsd ? `${Number(item.salePriceUsd).toFixed(2)} USD` : '—';
+        detailCommission.textContent = item.commissionUsd ? `${Number(item.commissionUsd).toFixed(2)} USD` : '—';
+        detailSource.textContent = item.sourceUrl || '';
+        const history = Array.isArray(data.history) ? data.history : [];
+        historyCount.textContent = history.length ? `${history.length} событий` : '—';
+        detailHistory.innerHTML = history.length
+          ? history
+            .map((entry) => `<li><span class="font-medium">${entry.status}</span> — ${entry.changed_at}</li>`)
+            .join('')
+          : '<li class="text-slate-500">Нет событий</li>';
+      } catch (error) {
+        detailTitle.textContent = 'Ошибка соединения';
+        detailHistory.innerHTML = '<li class="text-rose-600">Не удалось загрузить детали</li>';
+      }
+    }
+
+    async function loadStats() {
+      try {
+        const res = await fetch(`${apiBaseInput.value}/api/stats`);
+        const data = await res.json();
+        if (!res.ok) return;
+        statTotal.textContent = data.summary?.total ?? '0';
+        statCart.textContent = data.summary?.cart ?? '0';
+        statWarehouse.textContent = data.summary?.warehouse ?? '0';
+        statShowcase.textContent = data.summary?.showcase ?? '0';
+        statSold.textContent = `Продано: ${data.summary?.sold ?? 0}`;
+        statPurchase.textContent = formatCurrency(data.totals?.purchaseUsd);
+        statSale.textContent = formatCurrency(data.totals?.saleUsd);
+        statProfit.textContent = formatCurrency(data.totals?.profitUsd);
+        const timeline = Array.isArray(data.timeline) ? data.timeline : [];
+        statTimeline.innerHTML = timeline.length
+          ? timeline.map((item) => `<li><span class="font-medium">${item.day}</span>: ${item.status} → ${item.count}</li>`).join('')
+          : '<li class="text-slate-500">Событий нет</li>';
+      } catch (error) {
+        statTimeline.innerHTML = '<li class="text-rose-600">Не удалось загрузить статистику</li>';
+      }
+    }
+
+    async function loadTrends() {
+      try {
+        const res = await fetch(`${apiBaseInput.value}/api/trends`);
+        const data = await res.json();
+        const added = Array.isArray(data.added) ? data.added : [];
+        const sold = Array.isArray(data.sold) ? data.sold : [];
+        trendAdded.innerHTML = added.length
+          ? added.map((row) => `<li><span class="font-medium">${row.day}</span>: +${row.count}</li>`).join('')
+          : '<li class="text-slate-500">Нет данных</li>';
+        trendSold.innerHTML = sold.length
+          ? sold.map((row) => `<li><span class="font-medium">${row.day}</span>: ${row.sold}</li>`).join('')
+          : '<li class="text-slate-500">Нет данных</li>';
+      } catch (error) {
+        trendAdded.innerHTML = '<li class="text-rose-600">Ошибка загрузки трендов</li>';
+        trendSold.innerHTML = '<li class="text-rose-600">Ошибка загрузки трендов</li>';
+      }
+    }
+
+    async function loadSettings() {
+      try {
+        const res = await fetch(`${apiBaseInput.value}/api/settings`);
+        const data = await res.json();
+        const settings = data.settings || {};
+        rapidApiKeyInput.value = settings.rapidApiKey ?? '';
+        markupPercentInput.value = settings.markupPercent ?? '';
+        settingsHint.textContent = 'Загружено';
+      } catch (error) {
+        settingsHint.textContent = 'Не удалось загрузить настройки';
+        settingsHint.className = 'text-sm text-rose-600';
+      }
+    }
+
     itemsTable.addEventListener('click', async (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      const button = target.closest('[data-action="update-status"]');
-      if (!button) return;
+      const updateButton = target.closest('[data-action="update-status"]');
+      const detailsButton = target.closest('[data-action="open-details"]');
+      if (!updateButton && !detailsButton) return;
 
-      const row = button.closest('tr');
+      const row = (updateButton ?? detailsButton)?.closest('tr');
       if (!row) return;
 
       const itemId = row.getAttribute('data-item-id');
       const select = row.querySelector('[data-role="status-select"]');
       const hint = row.querySelector('[data-role="status-hint"]');
 
-      if (!itemId || !select) return;
+      if (!itemId) return;
+
+      if (detailsButton) {
+        await loadItemDetails(itemId);
+        return;
+      }
+
+      if (!select) return;
 
       if (hint) {
         hint.textContent = 'Обновляем...';
@@ -276,7 +519,11 @@
       }
     });
 
-    document.getElementById('reloadItems').addEventListener('click', loadItems);
+    document.getElementById('reloadItems').addEventListener('click', () => {
+      loadItems();
+      loadStats();
+      loadTrends();
+    });
     statusFilter.addEventListener('change', loadItems);
 
     itemForm.addEventListener('submit', async (event) => {
@@ -306,7 +553,33 @@
       }
     });
 
+    settingsForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      settingsHint.textContent = 'Сохраняем...';
+      try {
+        const res = await fetch(`${apiBaseInput.value}/api/settings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ settings: {
+            rapidApiKey: rapidApiKeyInput.value,
+            markupPercent: markupPercentInput.value,
+          } }),
+        });
+        const data = await res.json();
+        settingsHint.textContent = res.ok ? 'Сохранено' : (data.error || 'Ошибка сохранения');
+        settingsHint.className = res.ok ? 'text-sm text-emerald-600' : 'text-sm text-rose-600';
+      } catch (error) {
+        settingsHint.textContent = 'Сеть недоступна';
+        settingsHint.className = 'text-sm text-rose-600';
+      }
+    });
+
+    closeDetails.addEventListener('click', () => clearDetails());
+
     loadItems();
+    loadStats();
+    loadTrends();
+    loadSettings();
   </script>
 </body>
 </html>

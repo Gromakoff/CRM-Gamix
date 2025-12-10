@@ -44,8 +44,11 @@ interface ItemInput {
   entryType?: 'auto' | 'hand';
   purchasePriceCny?: number;
   listingPriceUsd?: number;
+  salePriceUsd?: number;
+  commissionUsd?: number;
   salePlatform?: string;
   sourceUrl?: string;
+  quantity?: number;
 }
 
 interface ItemUpdateInput extends ItemInput {
@@ -97,8 +100,11 @@ async function createItem(request: Request, env: Env): Promise<Response> {
     entry_type: payload.entryType ?? 'hand',
     purchase_price_cny: payload.purchasePriceCny ?? null,
     listing_price_usd: payload.listingPriceUsd ?? null,
+    sale_price_usd: payload.salePriceUsd ?? null,
+    commission_usd: payload.commissionUsd ?? null,
     sale_platform: payload.salePlatform ?? null,
     source_url: payload.sourceUrl ?? null,
+    quantity: payload.quantity ?? 1,
   } as const;
 
   const columns = Object.keys(insertData);
@@ -139,6 +145,9 @@ async function updateItem(request: Request, env: Env, params: Record<string, str
   if (payload.entryType) updateMap.entry_type = payload.entryType;
   if (payload.purchasePriceCny !== undefined) updateMap.purchase_price_cny = payload.purchasePriceCny;
   if (payload.listingPriceUsd !== undefined) updateMap.listing_price_usd = payload.listingPriceUsd;
+  if (payload.salePriceUsd !== undefined) updateMap.sale_price_usd = payload.salePriceUsd;
+  if (payload.commissionUsd !== undefined) updateMap.commission_usd = payload.commissionUsd;
+  if (payload.quantity !== undefined) updateMap.quantity = payload.quantity;
   if (payload.salePlatform !== undefined) updateMap.sale_platform = payload.salePlatform;
   if (payload.sourceUrl !== undefined) updateMap.source_url = payload.sourceUrl;
 
@@ -188,6 +197,126 @@ async function listItems(request: Request, env: Env): Promise<Response> {
   return json({ items: rows.map(mapItemRow) });
 }
 
+async function getItem(request: Request, env: Env, params: Record<string, string>): Promise<Response> {
+  const id = Number(params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return badRequest('Некорректный ID товара.');
+  }
+
+  const row = await getFirst<Record<string, unknown>>(env.DB, 'SELECT * FROM items WHERE id = ?', [id]);
+  if (!row) return notFound('Товар не найден.');
+
+  const history = await runQuery<Record<string, unknown>>(
+    env.DB,
+    'SELECT status, note, changed_at FROM item_status_history WHERE item_id = ? ORDER BY changed_at DESC',
+    [id],
+  );
+
+  return json({ item: mapItemRow(row), history });
+}
+
+async function deleteItem(_request: Request, env: Env, params: Record<string, string>): Promise<Response> {
+  const id = Number(params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return badRequest('Некорректный ID товара.');
+  }
+
+  const result = await env.DB.prepare('DELETE FROM items WHERE id = ?').bind(id).run();
+  if (!result.success || (result.meta?.changes ?? 0) === 0) {
+    return notFound('Товар не найден.');
+  }
+
+  return json({ message: 'Товар удалён' });
+}
+
+async function getStats(_request: Request, env: Env): Promise<Response> {
+  const countsRows = await runQuery<{ status: string; count: number }>(
+    env.DB,
+    'SELECT status, COUNT(*) as count FROM items GROUP BY status',
+  );
+  const counts: Record<string, number> = { cart: 0, warehouse: 0, showcase: 0, sold: 0 };
+  countsRows.forEach((row) => {
+    if (counts[row.status] !== undefined) counts[row.status] = row.count;
+  });
+  const totalItems = Object.values(counts).reduce((acc, value) => acc + value, 0);
+
+  const sums = await getFirst<{
+    purchase: number | null;
+    sale: number | null;
+    commission: number | null;
+  }>(
+    env.DB,
+    'SELECT SUM(COALESCE(purchase_price_usd, 0)) as purchase, SUM(COALESCE(sale_price_usd, 0)) as sale, SUM(COALESCE(commission_usd, 0)) as commission FROM items',
+  );
+
+  const statusTimeline = await runQuery<{
+    day: string;
+    status: string;
+    count: number;
+  }>(
+    env.DB,
+    "SELECT substr(changed_at, 1, 10) as day, status, COUNT(*) as count FROM item_status_history WHERE changed_at >= datetime('now', '-7 days') GROUP BY day, status ORDER BY day ASC",
+  );
+
+  const totals = {
+    purchaseUsd: sums?.purchase ?? 0,
+    saleUsd: sums?.sale ?? 0,
+    commissionUsd: sums?.commission ?? 0,
+  } as const;
+
+  const profitUsd = totals.saleUsd - totals.purchaseUsd - totals.commissionUsd;
+
+  return json({
+    summary: { ...counts, total: totalItems },
+    totals: { ...totals, profitUsd },
+    timeline: statusTimeline,
+  });
+}
+
+async function getTrends(_request: Request, env: Env): Promise<Response> {
+  const lastAdded = await runQuery<{ day: string; count: number }>(
+    env.DB,
+    "SELECT substr(created_at, 1, 10) as day, COUNT(*) as count FROM items WHERE created_at >= datetime('now', '-14 days') GROUP BY day ORDER BY day ASC",
+  );
+
+  const lastSold = await runQuery<{ day: string; sold: number }>(
+    env.DB,
+    "SELECT substr(changed_at, 1, 10) as day, COUNT(*) as sold FROM item_status_history WHERE status = 'sold' AND changed_at >= datetime('now', '-14 days') GROUP BY day ORDER BY day ASC",
+  );
+
+  return json({
+    added: lastAdded,
+    sold: lastSold,
+    message: 'Тренды собираются по событиям за последние 14 дней.',
+  });
+}
+
+async function getSettings(_request: Request, env: Env): Promise<Response> {
+  const rows = await runQuery<{ key: string; value: string }>(env.DB, 'SELECT key, value FROM settings');
+  const settings = rows.reduce<Record<string, string>>((acc, row) => {
+    acc[row.key] = row.value;
+    return acc;
+  }, {});
+  return json({ settings });
+}
+
+async function saveSettings(request: Request, env: Env): Promise<Response> {
+  const payload = (await request.json().catch(() => null)) as { settings?: Record<string, string> } | null;
+  if (!payload || !payload.settings || typeof payload.settings !== 'object') {
+    return badRequest('Передайте объект settings для сохранения.');
+  }
+
+  for (const [key, value] of Object.entries(payload.settings)) {
+    await env.DB.prepare(
+      'INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at',
+    )
+      .bind(key, String(value), new Date().toISOString())
+      .run();
+  }
+
+  return json({ message: 'Настройки обновлены' });
+}
+
 const routes: RouteHandler[] = [
   {
     method: 'GET',
@@ -225,6 +354,11 @@ const routes: RouteHandler[] = [
     handler: listItems,
   },
   {
+    method: 'GET',
+    path: /^\/api\/products\/(?<id>\d+)$/,
+    handler: getItem,
+  },
+  {
     method: 'PUT',
     path: /^\/api\/products\/(?<id>\d+)$/,
     handler: updateItem,
@@ -232,22 +366,27 @@ const routes: RouteHandler[] = [
   {
     method: 'GET',
     path: /^\/api\/stats$/,
-    handler: () => json({ revenue: 0, cost: 0, profit: 0, message: 'Заглушка статистики.' }),
+    handler: getStats,
   },
   {
     method: 'GET',
     path: /^\/api\/trends$/,
-    handler: () => json({ items: [], message: 'Заглушка трендов.' }),
+    handler: getTrends,
   },
   {
     method: 'GET',
     path: /^\/api\/settings$/,
-    handler: () =>
-      json({
-        rapidApiKey: 'не настроено',
-        translators: ['yandex', 'microsoft', 'workers-ai'],
-        markupPercent: 0,
-      }),
+    handler: getSettings,
+  },
+  {
+    method: 'POST',
+    path: /^\/api\/settings$/,
+    handler: saveSettings,
+  },
+  {
+    method: 'DELETE',
+    path: /^\/api\/products\/(?<id>\d+)$/,
+    handler: deleteItem,
   },
 ];
 
