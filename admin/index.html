@@ -168,6 +168,14 @@
                   <dt class="text-slate-500">Комиссия</dt>
                   <dd id="detailCommission">—</dd>
                 </div>
+                <div>
+                  <dt class="text-slate-500">Тип ресурса</dt>
+                  <dd id="detailResource">—</dd>
+                </div>
+                <div>
+                  <dt class="text-slate-500">Количество</dt>
+                  <dd id="detailQuantity">—</dd>
+                </div>
               </dl>
               <p id="detailSource" class="text-sm text-slate-500 mt-2 break-all"></p>
             </div>
@@ -278,6 +286,8 @@
     const detailListing = document.getElementById('detailListing');
     const detailSale = document.getElementById('detailSale');
     const detailCommission = document.getElementById('detailCommission');
+    const detailResource = document.getElementById('detailResource');
+    const detailQuantity = document.getElementById('detailQuantity');
     const detailSource = document.getElementById('detailSource');
     const detailHistory = document.getElementById('detailHistory');
     const historyCount = document.getElementById('historyCount');
@@ -302,6 +312,8 @@
       detailListing.textContent = '—';
       detailSale.textContent = '—';
       detailCommission.textContent = '—';
+      detailResource.textContent = '—';
+      detailQuantity.textContent = '—';
       detailSource.textContent = '';
       detailHistory.innerHTML = '<li class="text-slate-500">Нет событий</li>';
       historyCount.textContent = '—';
@@ -364,12 +376,18 @@
                 <td class="px-3 py-2 capitalize">${item.status ?? '—'}</td>
                 <td class="px-3 py-2">${price}</td>
                 <td class="px-3 py-2">
-                  <div class="flex items-center gap-2">
-                    <select data-role="status-select" class="rounded-lg border-slate-200 text-sm focus:border-indigo-400 focus:ring-indigo-200">${options}</select>
-                    <button data-action="update-status" class="px-3 py-1.5 bg-slate-900 text-white text-xs rounded-lg hover:bg-slate-700">Обновить</button>
-                    <button data-action="open-details" class="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs rounded-lg hover:bg-slate-200">Детали</button>
+                  <div class="flex flex-col gap-1">
+                    <div class="flex items-center gap-2">
+                      <select data-role="status-select" class="rounded-lg border-slate-200 text-sm focus:border-indigo-400 focus:ring-indigo-200">${options}</select>
+                      <input data-role="status-note" class="rounded-lg border-slate-200 text-xs px-2 py-1 w-28 focus:border-indigo-400 focus:ring-indigo-200" placeholder="комментарий" />
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <button data-action="update-status" class="px-3 py-1.5 bg-slate-900 text-white text-xs rounded-lg hover:bg-slate-700">Обновить</button>
+                      <button data-action="open-details" class="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs rounded-lg hover:bg-slate-200">Детали</button>
+                      <button data-action="delete-item" class="px-3 py-1.5 bg-rose-50 text-rose-700 text-xs rounded-lg hover:bg-rose-100">Удалить</button>
+                    </div>
+                    <p class="text-xs text-slate-500" data-role="status-hint"></p>
                   </div>
-                  <p class="text-xs text-slate-500" data-role="status-hint"></p>
                 </td>
               </tr>`;
           })
@@ -398,6 +416,8 @@
         detailListing.textContent = item.listingPriceUsd ? `${Number(item.listingPriceUsd).toFixed(2)} USD` : '—';
         detailSale.textContent = item.salePriceUsd ? `${Number(item.salePriceUsd).toFixed(2)} USD` : '—';
         detailCommission.textContent = item.commissionUsd ? `${Number(item.commissionUsd).toFixed(2)} USD` : '—';
+        detailResource.textContent = item.resourceType || '—';
+        detailQuantity.textContent = item.quantity ?? '—';
         detailSource.textContent = item.sourceUrl || '';
         const history = Array.isArray(data.history) ? data.history : [];
         historyCount.textContent = history.length ? `${history.length} событий` : '—';
@@ -479,11 +499,44 @@
       const itemId = row.getAttribute('data-item-id');
       const select = row.querySelector('[data-role="status-select"]');
       const hint = row.querySelector('[data-role="status-hint"]');
+      const noteInput = row.querySelector('[data-role="status-note"]');
 
       if (!itemId) return;
 
       if (detailsButton) {
         await loadItemDetails(itemId);
+        return;
+      }
+
+      const deleteButton = target.closest('[data-action="delete-item"]');
+      if (deleteButton) {
+        const confirmed = confirm('Удалить товар безвозвратно?');
+        if (!confirmed) return;
+        if (hint) {
+          hint.textContent = 'Удаляем...';
+          hint.className = 'text-xs text-slate-500';
+        }
+        try {
+          const res = await fetch(`${apiBaseInput.value}/api/products/${itemId}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (res.ok) {
+            if (hint) {
+              hint.textContent = data.message || 'Удалено';
+              hint.className = 'text-xs text-emerald-600';
+            }
+            await loadItems();
+            await loadStats();
+            await loadTrends();
+          } else if (hint) {
+            hint.textContent = data.error || 'Ошибка удаления';
+            hint.className = 'text-xs text-rose-600';
+          }
+        } catch (error) {
+          if (hint) {
+            hint.textContent = 'Сеть недоступна';
+            hint.className = 'text-xs text-rose-600';
+          }
+        }
         return;
       }
 
@@ -498,7 +551,7 @@
         const res = await fetch(`${apiBaseInput.value}/api/products/${itemId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: select.value }),
+          body: JSON.stringify({ status: select.value, statusNote: noteInput?.value || undefined }),
         });
         const data = await res.json();
         if (res.ok) {
@@ -507,6 +560,8 @@
             hint.className = 'text-xs text-emerald-600';
           }
           await loadItems();
+          await loadStats();
+          await loadTrends();
         } else if (hint) {
           hint.textContent = data.error || 'Ошибка сохранения';
           hint.className = 'text-xs text-rose-600';
