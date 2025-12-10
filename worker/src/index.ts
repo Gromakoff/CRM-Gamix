@@ -35,12 +35,12 @@ function unauthorized(message?: string): Response {
   return json({ error: message ?? 'Требуется авторизация' }, { status: 401 });
 }
 
-function ensureAuthConfig(env: Env): Response | null {
-  if (!env.ADMIN_EMAIL || !env.ADMIN_PASSWORD) {
+function ensureAuthSecret(env: Env): Response | null {
+  if (!getAuthSecret(env)) {
     return json(
       {
-        error: 'Админ-доступ не настроен',
-        hint: 'Задайте переменные ADMIN_EMAIL и ADMIN_PASSWORD в wrangler.toml или через Wrangler secrets.',
+        error: 'Секрет подписи не настроен',
+        hint: 'Задайте ADMIN_SECRET или используйте ADMIN_PASSWORD как резервный секрет.',
       },
       { status: 500 },
     );
@@ -67,12 +67,8 @@ async function signContent(content: string, secret: string): Promise<string> {
   return btoa(binary);
 }
 
-async function createToken(email: string, secret: string, ttlSeconds = DEFAULT_TOKEN_TTL) {
-  const payload: TokenPayload = {
-    email,
-    exp: Math.floor(Date.now() / 1000) + ttlSeconds,
-  };
-  const encodedPayload = btoa(JSON.stringify(payload));
+async function createToken(payload: TokenPayload, secret: string, ttlSeconds = DEFAULT_TOKEN_TTL) {
+  const encodedPayload = btoa(JSON.stringify({ ...payload, exp: Math.floor(Date.now() / 1000) + ttlSeconds }));
   const signature = await signContent(encodedPayload, secret);
   return `${encodedPayload}.${signature}`;
 }
@@ -93,9 +89,9 @@ async function verifyToken(token: string, secret: string): Promise<TokenPayload 
   }
 }
 
-async function authenticate(request: Request, env: Env): Promise<{ ok: true; user: TokenPayload } | { ok: false; response: Response }> {
-  const configError = ensureAuthConfig(env);
-  if (configError) return { ok: false, response: configError };
+async function authenticate(request: Request, env: Env): Promise<{ ok: true; user: AuthUser } | { ok: false; response: Response }> {
+  const secretError = ensureAuthSecret(env);
+  if (secretError) return { ok: false, response: secretError };
 
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -113,7 +109,20 @@ async function authenticate(request: Request, env: Env): Promise<{ ok: true; use
     return { ok: false, response: unauthorized('Токен не прошёл проверку или истёк.') };
   }
 
-  return { ok: true, user: payload };
+  const userRow = await getFirst<{ id: number; username: string; role: string; is_active: number }>(
+    env.DB,
+    'SELECT u.id, u.username, u.is_active, r.code as role FROM users u JOIN roles r ON u.role_id = r.id WHERE u.id = ?',
+    [payload.userId],
+  );
+
+  if (!userRow || !userRow.is_active) {
+    return { ok: false, response: unauthorized('Пользователь не найден или отключён.') };
+  }
+
+  return {
+    ok: true,
+    user: { id: userRow.id, username: userRow.username, role: userRow.role as string, provider: payload.provider },
+  };
 }
 
 interface RouteHandler {
@@ -124,11 +133,72 @@ interface RouteHandler {
 }
 
 interface TokenPayload {
-  email: string;
+  userId: number;
+  username: string;
+  role: string;
+  provider?: 'password' | 'telegram';
   exp: number;
 }
 
+interface AuthUser {
+  id: number;
+  username: string;
+  role: string;
+  provider?: 'password' | 'telegram';
+}
+
+interface TelegramAuthPayload {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+  auth_date: number;
+  hash: string;
+}
+
 const DEFAULT_TOKEN_TTL = 60 * 60 * 24; // 24 hours
+
+async function hashPassword(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  const bytes = Array.from(new Uint8Array(digest));
+  return bytes.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function ensureBaseRoles(env: Env) {
+  await env.DB.prepare("INSERT OR IGNORE INTO roles(code, name, description) VALUES ('admin','Admin','Полный доступ')").run();
+  await env.DB.prepare("INSERT OR IGNORE INTO roles(code, name, description) VALUES ('trader','Trader','Ограниченный доступ')").run();
+}
+
+async function getRoleId(env: Env, code: 'admin' | 'trader'): Promise<number | null> {
+  const role = await getFirst<{ id: number }>(env.DB, 'SELECT id FROM roles WHERE code = ?', [code]);
+  return role?.id ?? null;
+}
+
+async function isFirstUser(env: Env): Promise<boolean> {
+  const row = await getFirst<{ count: number }>(env.DB, 'SELECT COUNT(*) as count FROM users');
+  return (row?.count ?? 0) === 0;
+}
+
+async function hmacSha256Hex(message: string, key: ArrayBuffer): Promise<string> {
+  const cryptoKey = await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(message));
+  const bytes = Array.from(new Uint8Array(signature));
+  return bytes.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function verifyTelegramAuth(payload: Record<string, string | number>, botToken: string): Promise<boolean> {
+  const { hash, ...rest } = payload as Record<string, string>;
+  if (!hash) return false;
+
+  const checkData = Object.keys(rest)
+    .sort()
+    .map((key) => `${key}=${rest[key]}`)
+    .join('\n');
+
+  const secret = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(botToken)));
+  const signature = await hmacSha256Hex(checkData, secret.buffer);
+  return signature === hash;
+}
 
 interface ItemInput {
   title?: string;
@@ -181,15 +251,35 @@ function mapItemRow(row: Record<string, unknown>) {
 }
 
 async function login(request: Request, env: Env): Promise<Response> {
-  const configError = ensureAuthConfig(env);
-  if (configError) return configError;
+  const secretError = ensureAuthSecret(env);
+  if (secretError) return secretError;
 
-  const payload = (await request.json().catch(() => null)) as { email?: string; password?: string } | null;
-  if (!payload?.email || !payload?.password) {
-    return badRequest('Передайте email и password в JSON.');
+  const payload = (await request.json().catch(() => null)) as { email?: string; username?: string; password?: string } | null;
+  const username = (payload?.email || payload?.username)?.trim().toLowerCase();
+  if (!username || !payload?.password) {
+    return badRequest('Передайте email (или username) и password в JSON.');
   }
 
-  if (payload.email !== env.ADMIN_EMAIL || payload.password !== env.ADMIN_PASSWORD) {
+  await ensureBaseRoles(env);
+
+  const userRow = await getFirst<{
+    id: number;
+    username: string;
+    password_hash: string;
+    role: string;
+    is_active: number;
+  }>(
+    env.DB,
+    'SELECT u.id, u.username, u.password_hash, u.is_active, r.code as role FROM users u JOIN roles r ON u.role_id = r.id WHERE u.username = ?',
+    [username],
+  );
+
+  if (!userRow || !userRow.is_active) {
+    return unauthorized('Пользователь не найден или отключён. Зарегистрируйтесь.');
+  }
+
+  const passwordHash = await hashPassword(payload.password);
+  if (passwordHash !== userRow.password_hash) {
     return unauthorized('Неверный логин или пароль.');
   }
 
@@ -198,10 +288,157 @@ async function login(request: Request, env: Env): Promise<Response> {
     return unauthorized('Секрет подписи не настроен. Укажите ADMIN_SECRET.');
   }
 
-  const token = await createToken(payload.email, secret);
+  const tokenPayload: TokenPayload = {
+    userId: userRow.id,
+    username: userRow.username,
+    role: userRow.role,
+    provider: 'password',
+    exp: 0,
+  };
+
+  const token = await createToken(tokenPayload, secret);
   const expiresAt = new Date(Date.now() + DEFAULT_TOKEN_TTL * 1000).toISOString();
 
-  return json({ token, user: { email: payload.email }, expiresAt });
+  return json({ token, user: { id: userRow.id, username: userRow.username, role: userRow.role }, expiresAt });
+}
+
+async function register(request: Request, env: Env): Promise<Response> {
+  const secretError = ensureAuthSecret(env);
+  if (secretError) return secretError;
+
+  const payload = (await request.json().catch(() => null)) as { email?: string; username?: string; password?: string } | null;
+  const username = (payload?.email || payload?.username)?.trim().toLowerCase();
+  const password = payload?.password?.trim();
+
+  if (!username || !password) {
+    return badRequest('Передайте email (или username) и password в JSON.');
+  }
+
+  await ensureBaseRoles(env);
+
+  const existing = await getFirst<{ id: number }>(env.DB, 'SELECT id FROM users WHERE username = ?', [username]);
+  if (existing) {
+    return badRequest('Пользователь уже существует. Используйте другой email или войдите.');
+  }
+
+  const roleCode: 'admin' | 'trader' = (await isFirstUser(env)) ? 'admin' : 'trader';
+  const roleId = await getRoleId(env, roleCode);
+
+  if (!roleId) {
+    return json({ error: 'Не найдена роль для пользователя' }, { status: 500 });
+  }
+
+  const passwordHash = await hashPassword(password);
+  const userId = await execute(env.DB, 'INSERT INTO users(username, password_hash, role_id, is_active) VALUES (?, ?, ?, 1)', [
+    username,
+    passwordHash,
+    roleId,
+  ]);
+
+  const secret = getAuthSecret(env);
+  if (!secret) {
+    return unauthorized('Секрет подписи не настроен. Укажите ADMIN_SECRET.');
+  }
+
+  const tokenPayload: TokenPayload = {
+    userId,
+    username,
+    role: roleCode,
+    provider: 'password',
+    exp: 0,
+  };
+
+  const token = await createToken(tokenPayload, secret);
+  const expiresAt = new Date(Date.now() + DEFAULT_TOKEN_TTL * 1000).toISOString();
+
+  return json({
+    message: roleCode === 'admin' ? 'Первый пользователь автоматически получает роль admin.' : 'Регистрация успешна.',
+    token,
+    user: { id: userId, username, role: roleCode },
+    expiresAt,
+  });
+}
+
+async function telegramLogin(request: Request, env: Env): Promise<Response> {
+  const secretError = ensureAuthSecret(env);
+  if (secretError) return secretError;
+
+  if (!env.TELEGRAM_BOT_TOKEN) {
+    return json({ error: 'Укажите TELEGRAM_BOT_TOKEN в переменных окружения.' }, { status: 500 });
+  }
+
+  const payload = (await request.json().catch(() => null)) as Partial<TelegramAuthPayload> | null;
+
+  if (!payload || !payload.id || !payload.auth_date || !payload.hash) {
+    return badRequest('Передайте auth payload от Telegram Login Widget (id, username, auth_date, hash).');
+  }
+
+  const valid = await verifyTelegramAuth(
+    {
+      id: payload.id,
+      first_name: payload.first_name ?? '',
+      last_name: payload.last_name ?? '',
+      username: payload.username ?? '',
+      auth_date: payload.auth_date,
+      hash: payload.hash,
+    },
+    env.TELEGRAM_BOT_TOKEN,
+  );
+
+  if (!valid) {
+    return unauthorized('Подпись Telegram не прошла проверку.');
+  }
+
+  await ensureBaseRoles(env);
+
+  const normalizedUsername = (payload.username || `tg_${payload.id}`).toLowerCase();
+  const existing = await getFirst<{ id: number; role: string }>(
+    env.DB,
+    'SELECT u.id, r.code as role FROM users u JOIN roles r ON u.role_id = r.id WHERE u.username = ?',
+    [normalizedUsername],
+  );
+
+  let userId = existing?.id;
+  let roleCode: 'admin' | 'trader' = existing?.role === 'admin' ? 'admin' : 'trader';
+  let message = 'Вход через Telegram';
+
+  if (!existing) {
+    const first = await isFirstUser(env);
+    roleCode = first ? 'admin' : 'trader';
+    const roleId = await getRoleId(env, roleCode);
+    if (!roleId) {
+      return json({ error: 'Не найдена роль для пользователя' }, { status: 500 });
+    }
+    const passwordHash = await hashPassword(`telegram:${payload.id}:${payload.auth_date}`);
+    userId = await execute(env.DB, 'INSERT INTO users(username, password_hash, role_id, is_active) VALUES (?, ?, ?, 1)', [
+      normalizedUsername,
+      passwordHash,
+      roleId,
+    ]);
+    message = first ? 'Первый Telegram-пользователь стал администратором.' : 'Пользователь создан через Telegram.';
+  }
+
+  if (!userId) {
+    return json({ error: 'Не удалось создать пользователя' }, { status: 500 });
+  }
+
+  const secret = getAuthSecret(env);
+  if (!secret) {
+    return unauthorized('Секрет подписи не настроен. Укажите ADMIN_SECRET.');
+  }
+
+  const tokenPayload: TokenPayload = {
+    userId,
+    username: normalizedUsername,
+    role: roleCode,
+    provider: 'telegram',
+    exp: 0,
+  };
+
+  const token = await createToken(tokenPayload, secret);
+  const expiresAt = new Date(Date.now() + DEFAULT_TOKEN_TTL * 1000).toISOString();
+
+  return json({ message, token, user: { id: userId, username: normalizedUsername, role: roleCode }, expiresAt });
 }
 
 async function createItem(request: Request, env: Env): Promise<Response> {
@@ -450,6 +687,18 @@ const routes: RouteHandler[] = [
     path: /^\/api\/login$/,
     public: true,
     handler: login,
+  },
+  {
+    method: 'POST',
+    path: /^\/api\/register$/,
+    public: true,
+    handler: register,
+  },
+  {
+    method: 'POST',
+    path: /^\/api\/telegram\/login$/,
+    public: true,
+    handler: telegramLogin,
   },
   {
     method: 'GET',
