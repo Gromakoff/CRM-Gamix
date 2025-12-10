@@ -1,3 +1,4 @@
+import type { Ai, D1Database } from '@cloudflare/workers-types';
 import { badRequest, json, notFound } from './lib/response';
 
 type Method = 'GET' | 'POST' | 'PUT' | 'DELETE';
