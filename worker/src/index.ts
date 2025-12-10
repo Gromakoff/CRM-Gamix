@@ -17,6 +17,7 @@ type Env = {
 };
 
 const DEFAULT_GATE_PASSWORD = 'gth-protect-9824';
+const GATE_COOKIE = 'gth_gate';
 
 const corsHeaders = new Headers({
   'Access-Control-Allow-Origin': '*',
@@ -38,22 +39,93 @@ function unauthorized(message?: string): Response {
   return json({ error: message ?? 'Требуется авторизация' }, { status: 401 });
 }
 
-function isBasicAuthorized(request: Request, password: string): boolean {
-  const header = request.headers.get('Authorization');
-  if (!header || !header.startsWith('Basic ')) return false;
-  const decoded = atob(header.slice(6));
-  const [, ...rest] = decoded.split(':');
-  const pass = rest.join(':');
-  return pass === password;
+function parseCookies(header: string | null): Record<string, string> {
+  if (!header) return {};
+  return Object.fromEntries(
+    header.split(';').map((part) => {
+      const [key, ...rest] = part.trim().split('=');
+      return [decodeURIComponent(key), decodeURIComponent(rest.join('='))];
+    }),
+  );
 }
 
-function protectStatic(request: Request, env: Env): Response | null {
+async function getGateToken(password: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password));
+  return btoa(String.fromCharCode(...new Uint8Array(digest)));
+}
+
+async function isGateAuthorized(request: Request, env: Env): Promise<boolean> {
+  const cookies = parseCookies(request.headers.get('Cookie'));
   const password = env.ADMIN_GATE_PASS || DEFAULT_GATE_PASSWORD;
-  if (isBasicAuthorized(request, password)) return null;
-  return new Response('Доступ к админке закрыт паролем.', {
-    status: 401,
-    headers: { 'WWW-Authenticate': 'Basic realm="GameTradeHub Admin"' },
-  });
+  if (!cookies[GATE_COOKIE]) return false;
+  const expected = await getGateToken(password);
+  return cookies[GATE_COOKIE] === expected;
+}
+
+function gatePage(returnTo: string): Response {
+  const html = `<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Game Trade Hub — Доступ</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center px-4">
+  <div class="bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-md p-8 space-y-6">
+    <div class="space-y-1">
+      <p class="text-lg font-semibold text-slate-900">Доступ к админке</p>
+      <p class="text-sm text-slate-600">Введите пароль, чтобы открыть закрытые страницы.</p>
+    </div>
+    <form id="gateForm" class="space-y-3">
+      <div>
+        <label for="gatePassword" class="block text-sm text-slate-600 mb-1">Пароль</label>
+        <input id="gatePassword" name="password" type="password" required placeholder="••••••" class="w-full rounded-lg border-slate-200 focus:border-indigo-400 focus:ring-indigo-200" />
+      </div>
+      <p id="gateHint" class="text-sm text-slate-500">Пароль выдаётся администратором.</p>
+      <button class="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-500">Продолжить</button>
+    </form>
+  </div>
+  <script>
+    const form = document.getElementById('gateForm');
+    const hint = document.getElementById('gateHint');
+    const password = document.getElementById('gatePassword');
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      hint.textContent = 'Проверяем пароль...';
+      hint.className = 'text-sm text-slate-500';
+      try {
+        const res = await fetch('/__gate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: password.value, returnTo: '${encodeURIComponent(returnTo)}' }),
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          hint.textContent = 'Готово, открываем страницу...';
+          hint.className = 'text-sm text-emerald-600';
+          setTimeout(() => window.location.href = data.returnTo || '/', 200);
+        } else {
+          hint.textContent = data.error || 'Пароль не подошёл.';
+          hint.className = 'text-sm text-rose-600';
+        }
+      } catch (error) {
+        hint.textContent = 'Не удалось проверить пароль. Попробуйте ещё раз.';
+        hint.className = 'text-sm text-rose-600';
+      }
+    });
+  </script>
+</body>
+</html>`;
+
+  return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8' } });
+}
+
+async function protectStatic(request: Request, env: Env): Promise<Response | null> {
+  if (await isGateAuthorized(request, env)) return null;
+
+  const url = new URL(request.url);
+  return gatePage(url.pathname + url.search);
 }
 
 function ensureAuthSecret(env: Env): Response | null {
@@ -69,6 +141,27 @@ function ensureAuthSecret(env: Env): Response | null {
   return null;
 }
 
+async function handleGate(request: Request, env: Env): Promise<Response | null> {
+  if (request.method !== 'POST') return null;
+
+  const payload = (await request.json().catch(() => null)) as { password?: string; returnTo?: string } | null;
+  const password = payload?.password?.trim();
+  if (!password) {
+    return json({ error: 'Введите пароль' }, { status: 400 });
+  }
+
+  const expectedPassword = env.ADMIN_GATE_PASS || DEFAULT_GATE_PASSWORD;
+  if (password !== expectedPassword) {
+    return json({ error: 'Пароль неверный' }, { status: 401 });
+  }
+
+  const token = await getGateToken(expectedPassword);
+  const headers = new Headers({ 'content-type': 'application/json; charset=utf-8' });
+  headers.append('Set-Cookie', `${GATE_COOKIE}=${token}; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax; Secure`);
+
+  return new Response(JSON.stringify({ ok: true, returnTo: payload?.returnTo || '/' }), { headers });
+}
+
 function getTelegramBotId(token?: string): string | null {
   if (!token) return null;
   const [id] = token.split(':');
@@ -76,8 +169,10 @@ function getTelegramBotId(token?: string): string | null {
 }
 
 function getAuthSecret(env: Env): string | null {
-  if (env.ADMIN_SECRET) return env.ADMIN_SECRET;
-  if (env.ADMIN_PASSWORD) return env.ADMIN_PASSWORD;
+  const secret = env.ADMIN_SECRET?.trim();
+  if (secret) return secret;
+  const password = env.ADMIN_PASSWORD?.trim();
+  if (password) return password;
   return null;
 }
 
@@ -802,8 +897,14 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
+    if (url.pathname === '/__gate') {
+      const response = await handleGate(request, env);
+      if (response) return response;
+      return new Response('Метод не поддерживается', { status: 405 });
+    }
+
     if (url.pathname === '/telegram-login') {
-      const protectedResponse = protectStatic(request, env);
+      const protectedResponse = await protectStatic(request, env);
       if (protectedResponse) return protectedResponse;
 
       const botId = getTelegramBotId(env.TELEGRAM_BOT_TOKEN);
@@ -829,7 +930,7 @@ export default {
     }
 
     if (!url.pathname.startsWith('/api')) {
-      const protectedResponse = protectStatic(request, env);
+      const protectedResponse = await protectStatic(request, env);
       if (protectedResponse) return protectedResponse;
       if (env.ASSETS) {
         const assetResponse = await env.ASSETS.fetch(request);
