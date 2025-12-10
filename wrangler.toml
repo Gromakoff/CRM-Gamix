@@ -3,8 +3,10 @@ main = "worker/src/index.ts"
 compatibility_date = "2025-12-10"
 
 [vars]
-# RAPIDAPI_KEY = "скопируйте ключ RapidAPI"
-# TELEGRAM_BOT_TOKEN = "токен бота для уведомлений"
+# Укажите реальные значения через `wrangler secret put` или экспортируйте переменные окружения
+# перед деплоем; здесь оставляем заглушки для явного объявления ключей.
+RAPIDAPI_KEY = "set_via_secret_or_env"
+TELEGRAM_BOT_TOKEN = "set_via_secret_or_env"
 
 [[d1_databases]]
 binding = "DB"
