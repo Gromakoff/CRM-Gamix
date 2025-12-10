@@ -5,7 +5,7 @@
 ## Быстрый старт
 1. Установите Wrangler (`npm i -g wrangler`).
 2. В файле `wrangler.toml` пропишите реальные значения `database_id` для D1 и задайте переменные `RAPIDAPI_KEY`, `TELEGRAM_BOT_TOKEN` (если нужны уведомления).
-3. Примените схему БД: `wrangler d1 execute gmhub --file=./db/schema.sql`.
+3. Примените схему БД: `wrangler d1 execute game-trade-hub --file=./db/schema.sql`.
 4. Запустите локально: `wrangler dev` из каталога `worker`.
 
 ## Структура

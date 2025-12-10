@@ -15,13 +15,13 @@
 
 ## Применение миграций
 
-1. Создать привязку D1 в `wrangler.toml`, например: `[[d1_databases]] binding = "DB" database_name = "gmhub"`.
-2. Выполнить миграцию: `wrangler d1 migrations apply gmhub` (прочитает `migrations/001_initial.sql`).
-3. При необходимости миграцию можно выполнить вручную: `wrangler d1 execute gmhub --file=worker/db/migrations/001_initial.sql`.
+1. Создать привязку D1 в `wrangler.toml`, например: `[[d1_databases]] binding = "DB" database_name = "game-trade-hub"`.
+2. Выполнить миграцию: `wrangler d1 migrations apply game-trade-hub` (прочитает `migrations/001_initial.sql`).
+3. При необходимости миграцию можно выполнить вручную: `wrangler d1 execute game-trade-hub --file=worker/db/migrations/001_initial.sql`.
 
 ## Сценарий сида
 
-Выполнить: `wrangler d1 execute gmhub --file=worker/db/seed.sql`.
+Выполнить: `wrangler d1 execute game-trade-hub --file=worker/db/seed.sql`.
 
 Сид создаёт:
 

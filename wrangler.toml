@@ -11,7 +11,7 @@ directory = "admin"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "gmhub"
+database_name = "game-trade-hub"
 database_id = "218d8c96-72e7-4cb6-bc1c-0acfefbf99fd"
 
 [ai]
