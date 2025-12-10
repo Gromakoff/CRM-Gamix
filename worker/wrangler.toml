@@ -9,7 +9,8 @@ compatibility_date = "2024-05-02"
 [[d1_databases]]
 binding = "DB"
 database_name = "game-trade-hub"
-database_id = "00000000-0000-0000-0000-000000000000" # замените на фактический ID D1
+database_id = "218d8c96-72e7-4cb6-bc1c-0acfefbf99fd"
 
-[[ai]]
+[ai]
 binding = "AI"
+model = "@cf/meta/m2m100-1.2b"
