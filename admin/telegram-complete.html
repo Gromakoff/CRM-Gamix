@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Telegram вход — Game Trade Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <div class="min-h-screen flex items-center justify-center px-4">
+    <div class="w-full max-w-lg bg-white rounded-xl shadow-sm border border-slate-100 p-6 space-y-4 text-center">
+      <p class="text-lg font-semibold">Проверяем данные Telegram…</p>
+      <p id="status" class="text-sm text-slate-600">Идёт вход через API воркера.</p>
+    </div>
+  </div>
+
+  <script>
+    const AUTH_STORAGE_KEY = 'gth_auth_session';
+    const paramsFromSearch = Object.fromEntries(new URLSearchParams(location.search));
+    const paramsFromHash = location.hash ? Object.fromEntries(new URLSearchParams(location.hash.slice(1))) : {};
+    const merged = { ...paramsFromSearch, ...paramsFromHash };
+
+    const apiBase = merged.apiBase || localStorage.getItem('gth_api_base') || (location.protocol.startsWith('http') ? location.origin : 'http://127.0.0.1:8787');
+    const statusEl = document.getElementById('status');
+
+    const saveSession = (user, token, expiresAt) => {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user, token, expiresAt }));
+    };
+
+    const redirectHome = () => {
+      setTimeout(() => (window.location.href = '/'), 800);
+    };
+
+    async function submitTelegram() {
+      const required = ['id', 'auth_date', 'hash'];
+      for (const key of required) {
+        if (!merged[key]) {
+          statusEl.textContent = 'Не хватает данных Telegram. Попробуйте ещё раз открыть ссылку входа.';
+          statusEl.className = 'text-sm text-rose-600';
+          return;
+        }
+      }
+
+      try {
+        const res = await fetch(`${apiBase}/api/telegram/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: Number(merged.id),
+            username: merged.username,
+            first_name: merged.first_name,
+            last_name: merged.last_name,
+            auth_date: Number(merged.auth_date),
+            hash: merged.hash,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok && data.token && data.user) {
+          saveSession(data.user, data.token, data.expiresAt);
+          localStorage.setItem('gth_api_base', apiBase);
+          statusEl.textContent = 'Готово. Перенаправляем в админку…';
+          statusEl.className = 'text-sm text-emerald-600';
+          redirectHome();
+        } else {
+          statusEl.textContent = data.error || 'Не удалось выполнить вход через Telegram.';
+          statusEl.className = 'text-sm text-rose-600';
+        }
+      } catch (error) {
+        statusEl.textContent = 'Ошибка соединения с API. Проверьте доступность воркера.';
+        statusEl.className = 'text-sm text-rose-600';
+      }
+    }
+
+    submitTelegram();
+  </script>
+</body>
+</html>

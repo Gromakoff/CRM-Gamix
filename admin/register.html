@@ -15,7 +15,7 @@
           <p class="text-sm text-slate-600">Первая учётка автоматически станет админом. Остальные получают роль trader.</p>
         </div>
         <div class="flex gap-2 text-sm">
-          <a href="/register-telegram.html" class="text-indigo-600 hover:text-indigo-500">Регистрация через Telegram</a>
+          <a href="/telegram-login" class="text-indigo-600 hover:text-indigo-500">Регистрация через Telegram</a>
           <span class="text-slate-400">|</span>
           <a href="/" class="text-slate-700 hover:text-slate-900">Назад ко входу</a>
         </div>
@@ -23,17 +23,6 @@
     </header>
 
     <main class="flex-1 max-w-3xl mx-auto px-4 py-10 space-y-6">
-      <section class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 space-y-4">
-        <div class="flex flex-col gap-2">
-          <label class="text-sm text-slate-600" for="apiBase">Адрес API (воркер)</label>
-          <div class="flex flex-col gap-2 md:flex-row md:items-center">
-            <input id="apiBase" type="url" class="w-full rounded-lg border-slate-200 focus:border-indigo-400 focus:ring-indigo-200" />
-            <button id="saveApiBase" class="px-4 py-2 bg-slate-900 text-white text-sm rounded-lg hover:bg-slate-800">Сохранить адрес</button>
-          </div>
-          <p id="apiHint" class="text-xs text-slate-500">Сохраняется локально и переиспользуется при входе.</p>
-        </div>
-      </section>
-
       <section class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 space-y-4">
         <div class="flex items-start justify-between gap-4">
           <div>
@@ -68,27 +57,10 @@
       || localStorage.getItem('gth_api_base')
       || (location.protocol.startsWith('http') ? location.origin : 'http://127.0.0.1:8787');
 
-    const apiBaseInput = document.getElementById('apiBase');
-    const apiHint = document.getElementById('apiHint');
-    const saveApiBase = document.getElementById('saveApiBase');
     const registerForm = document.getElementById('registerForm');
     const registerEmail = document.getElementById('registerEmail');
     const registerPassword = document.getElementById('registerPassword');
     const registerHint = document.getElementById('registerHint');
-
-    apiBaseInput.value = defaultApiBase;
-
-    saveApiBase.addEventListener('click', () => {
-      const value = apiBaseInput.value.trim();
-      if (!value) {
-        apiHint.textContent = 'Укажите адрес API, например https://gmhub.gromakoff.workers.dev';
-        apiHint.className = 'text-xs text-rose-600';
-        return;
-      }
-      localStorage.setItem('gth_api_base', value);
-      apiHint.textContent = 'Сохранено. Используйте ту же базу при входе.';
-      apiHint.className = 'text-xs text-emerald-600';
-    });
 
     const saveSession = (user, token, expiresAt) => {
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user, token, expiresAt }));
@@ -96,12 +68,7 @@
 
     registerForm.addEventListener('submit', async (event) => {
       event.preventDefault();
-      const apiBase = apiBaseInput.value.trim();
-      if (!apiBase) {
-        registerHint.textContent = 'Сначала сохраните адрес API.';
-        registerHint.className = 'text-sm text-rose-600';
-        return;
-      }
+      const apiBase = defaultApiBase;
       const email = registerEmail.value.trim().toLowerCase();
       const password = registerPassword.value;
       registerHint.textContent = 'Создаём пользователя...';

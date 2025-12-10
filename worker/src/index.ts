@@ -69,6 +69,12 @@ function ensureAuthSecret(env: Env): Response | null {
   return null;
 }
 
+function getTelegramBotId(token?: string): string | null {
+  if (!token) return null;
+  const [id] = token.split(':');
+  return id || null;
+}
+
 function getAuthSecret(env: Env): string | null {
   if (env.ADMIN_SECRET) return env.ADMIN_SECRET;
   if (env.ADMIN_PASSWORD) return env.ADMIN_PASSWORD;
@@ -794,6 +800,32 @@ export default {
 
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders });
+    }
+
+    if (url.pathname === '/telegram-login') {
+      const protectedResponse = protectStatic(request, env);
+      if (protectedResponse) return protectedResponse;
+
+      const botId = getTelegramBotId(env.TELEGRAM_BOT_TOKEN);
+      if (!botId) {
+        return new Response('TELEGRAM_BOT_TOKEN не настроен для Telegram Login.', {
+          status: 500,
+          headers: { 'content-type': 'text/plain; charset=utf-8' },
+        });
+      }
+
+      const returnUrl = new URL('/telegram-complete.html', url.origin);
+      const apiBaseParam = url.searchParams.get('apiBase');
+      if (apiBaseParam) returnUrl.searchParams.set('apiBase', apiBaseParam);
+
+      const loginUrl = new URL('https://oauth.telegram.org/auth');
+      loginUrl.searchParams.set('bot_id', botId);
+      loginUrl.searchParams.set('origin', url.origin);
+      loginUrl.searchParams.set('request_access', 'write');
+      loginUrl.searchParams.set('embed', '0');
+      loginUrl.searchParams.set('return_to', returnUrl.toString());
+
+      return Response.redirect(loginUrl.toString(), 302);
     }
 
     if (!url.pathname.startsWith('/api')) {
