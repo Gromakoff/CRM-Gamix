@@ -66,16 +66,12 @@
       <h2 class="text-lg font-semibold mb-2">Обзор</h2>
       <div class="grid gap-4 md:grid-cols-2">
         <div class="rounded-lg border border-slate-100 p-4">
-          <div class="flex items-center justify-between gap-2">
-            <p class="text-sm text-slate-500">API база</p>
-            <span id="connectionBadge" class="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-600">—</span>
-          </div>
+          <p class="text-sm text-slate-500">API база</p>
           <div class="mt-2 flex gap-2 flex-col md:flex-row md:items-center">
             <input id="apiBase" type="url" class="w-full md:w-auto flex-1 rounded-lg border-slate-200 focus:border-indigo-400 focus:ring-indigo-200" />
             <button id="saveApiBase" class="px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-500">Сохранить</button>
           </div>
           <p id="apiBaseHint" class="mt-1 text-xs text-slate-500">Используется локальный адрес.</p>
-          <p id="connectionHint" class="mt-1 text-xs text-slate-500">Укажите адрес воркера или передайте ?apiBase=... в URL.</p>
         </div>
 
         <div class="rounded-lg border border-slate-100 p-4">
@@ -299,24 +295,10 @@
   </main>
 
   <script>
-    const params = new URLSearchParams(location.search);
-    const urlApiBase = params.get('apiBase') || params.get('api');
-    const defaultApiBase = (urlApiBase && decodeURIComponent(urlApiBase))
-      || localStorage.getItem('gth_api_base')
+    const defaultApiBase = (localStorage.getItem('gth_api_base'))
       || (location.protocol.startsWith('http') ? location.origin : 'http://127.0.0.1:8787');
-    const AUTH_STORAGE_KEY = 'gth_auth_session';
-    const authSection = document.getElementById('authSection');
-    const adminShell = document.getElementById('adminShell');
-    const loginForm = document.getElementById('loginForm');
-    const loginHint = document.getElementById('loginHint');
-    const loginEmail = document.getElementById('loginEmail');
-    const loginPassword = document.getElementById('loginPassword');
-    const sessionUser = document.getElementById('sessionUser');
-    const logoutBtn = document.getElementById('logoutBtn');
     const apiBaseInput = document.getElementById('apiBase');
     const apiBaseHint = document.getElementById('apiBaseHint');
-    const connectionBadge = document.getElementById('connectionBadge');
-    const connectionHint = document.getElementById('connectionHint');
     const healthStatus = document.getElementById('healthStatus');
     const statusFilter = document.getElementById('statusFilter');
     const itemsTable = document.getElementById('itemsTable');
@@ -350,9 +332,6 @@
     const detailHistory = document.getElementById('detailHistory');
     const historyCount = document.getElementById('historyCount');
     const closeDetails = document.getElementById('closeDetails');
-    let authToken = null;
-    let authUser = null;
-    let isAuthenticated = false;
 
     const statusOptions = [
       { value: 'cart', label: 'Корзина' },
@@ -361,97 +340,10 @@
       { value: 'sold', label: 'Продано' },
     ];
 
-    const saveSession = (user, token, expiresAt) => {
-      authToken = token;
-      authUser = user;
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user, token, expiresAt }));
-    };
-
-    const dropSession = (hint) => {
-      authToken = null;
-      authUser = null;
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-      requireLogin(hint);
-    };
-
-    const restoreSession = () => {
-      const raw = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (!raw) return null;
-      try {
-        const parsed = JSON.parse(raw);
-        if (parsed?.token && parsed?.user) {
-          if (parsed.expiresAt && new Date(parsed.expiresAt).getTime() < Date.now()) {
-            localStorage.removeItem(AUTH_STORAGE_KEY);
-            return null;
-          }
-          authToken = parsed.token;
-          authUser = parsed.user;
-          return parsed;
-        }
-      } catch (error) {
-        console.warn('auth restore failed', error);
-      }
-      return null;
-    };
-
-    const getAuthHeaders = () => (authToken ? { Authorization: `Bearer ${authToken}` } : {});
-
-    const authFetch = async (url, options = {}) => {
-      const res = await fetch(url, {
-        ...options,
-        headers: { ...(options.headers || {}), ...getAuthHeaders() },
-      });
-      if (res.status === 401) {
-        dropSession('Сессия истекла или токен не подошёл. Войдите снова.');
-        throw new Error('unauthorized');
-      }
-      return res;
-    };
-
-    const setConnectionState = (state, message = '') => {
-      const badgeBase = 'px-2 py-1 text-xs rounded-full';
-      if (state === 'ok') {
-        connectionBadge.textContent = 'Подключено';
-        connectionBadge.className = `${badgeBase} bg-emerald-50 text-emerald-700 border border-emerald-100`;
-        connectionHint.textContent = message || 'API отвечает, можно работать.';
-        connectionHint.className = 'mt-1 text-xs text-emerald-600';
-      } else if (state === 'error') {
-        connectionBadge.textContent = 'Нет связи';
-        connectionBadge.className = `${badgeBase} bg-rose-50 text-rose-700 border border-rose-100`;
-        connectionHint.textContent = message || 'Проверьте адрес воркера или CORS.';
-        connectionHint.className = 'mt-1 text-xs text-rose-600';
-      } else {
-        connectionBadge.textContent = '—';
-        connectionBadge.className = `${badgeBase} bg-slate-100 text-slate-600`;
-        connectionHint.textContent = 'Укажите адрес воркера или передайте ?apiBase=... в URL.';
-        connectionHint.className = 'mt-1 text-xs text-slate-500';
-      }
-    };
-
     const formatCurrency = (value) =>
       value === null || value === undefined || value === ''
         ? '—'
         : `${Number(value).toFixed(2)} USD`;
-
-    const toggleControls = (disabled) => {
-      document.querySelectorAll('button, input, select, textarea').forEach((el) => {
-        const skipIds = [
-          'apiBase',
-          'saveApiBase',
-          'checkHealth',
-          'loginEmail',
-          'loginPassword',
-          'loginSubmit',
-        ];
-        if (skipIds.includes(el.id)) return;
-        el.toggleAttribute('disabled', disabled);
-        if (disabled) {
-          el.classList.add('opacity-60');
-        } else {
-          el.classList.remove('opacity-60');
-        }
-      });
-    };
 
     const clearDetails = () => {
       detailTitle.textContent = '—';
@@ -470,162 +362,42 @@
 
     apiBaseInput.value = defaultApiBase;
     apiBaseHint.textContent = defaultApiBase.includes('8787') ? 'Локальный порт Wrangler dev (8787).' : 'Адрес берётся из origin страницы.';
-    setConnectionState('idle');
-    toggleControls(true);
 
-    const startAdminData = async () => {
-      const ok = await runHealthCheck();
-      if (ok) {
-        await loadItems();
-        await loadStats();
-        await loadTrends();
-        await loadSettings();
-      }
-    };
-
-    const requireLogin = (hint) => {
-      isAuthenticated = false;
-      authToken = null;
-      authUser = null;
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-      sessionUser.textContent = 'Гость';
-      logoutBtn.hidden = true;
-      adminShell.hidden = true;
-      authSection.hidden = false;
-      if (hint) {
-        loginHint.textContent = hint;
-        loginHint.className = 'text-sm text-slate-500';
-      }
-      toggleControls(true);
-    };
-
-    const enterAdmin = (user) => {
-      isAuthenticated = true;
-      authUser = user;
-      sessionUser.textContent = `${user.username}${user.role ? ` (${user.role})` : ''}`;
-      logoutBtn.hidden = false;
-      authSection.hidden = true;
-      adminShell.hidden = false;
-      startAdminData();
-    };
-
-    const runHealthCheck = async (manual = false) => {
-      if (!isAuthenticated) {
-        if (manual) {
-          healthStatus.textContent = 'Сначала войдите в админку.';
-          healthStatus.className = 'text-sm text-slate-600';
-        }
-        toggleControls(true);
-        return false;
-      }
-      if (!apiBaseInput.value) {
-        healthStatus.textContent = 'Укажите API базу';
-        healthStatus.className = 'text-sm text-slate-600';
-        setConnectionState('idle');
-        toggleControls(true);
-        return false;
-      }
-
-      if (manual) {
-        healthStatus.textContent = 'Проверяем...';
-        healthStatus.className = 'text-sm text-slate-600';
-      }
-
-      try {
-        const res = await authFetch(`${apiBaseInput.value}/api/health`);
-        const data = await res.json();
-        if (data.status === 'ok') {
-          healthStatus.textContent = 'OK';
-          healthStatus.className = 'text-sm text-emerald-600';
-          setConnectionState('ok', `Ответил ${new Date().toLocaleTimeString()}`);
-          toggleControls(false);
-          return true;
-        }
-        healthStatus.textContent = 'Ответ не распознан';
-        healthStatus.className = 'text-sm text-amber-600';
-        setConnectionState('error', 'Ответ сервера не распознан.');
-      } catch (error) {
-        healthStatus.textContent = 'Ошибка соединения';
-        healthStatus.className = 'text-sm text-rose-600';
-        setConnectionState('error', 'Проверьте адрес воркера или CORS.');
-      }
-      toggleControls(true);
-      return false;
-    };
-
-    loginForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const email = loginEmail.value.trim().toLowerCase();
-      const password = loginPassword.value;
-      if (!apiBaseInput.value) {
-        loginHint.textContent = 'Сначала сохраните адрес API.';
-        loginHint.className = 'text-sm text-rose-600';
-        return;
-      }
-      loginHint.textContent = 'Проверяем...';
-      loginHint.className = 'text-sm text-slate-600';
-      try {
-        const res = await fetch(`${apiBaseInput.value}/api/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
-        const data = await res.json();
-        if (res.ok && data.token && data.user) {
-          saveSession(data.user, data.token, data.expiresAt);
-          loginHint.textContent = 'Успешно. Загружаем данные...';
-          loginHint.className = 'text-sm text-emerald-600';
-          enterAdmin(data.user);
-        } else {
-          loginHint.textContent = data.error || 'Неверные данные или нет ответа от сервера.';
-          loginHint.className = 'text-sm text-rose-600';
-        }
-      } catch (error) {
-        loginHint.textContent = 'Не удалось подключиться к API. Проверьте адрес или CORS.';
-        loginHint.className = 'text-sm text-rose-600';
-      }
-    });
-
-    logoutBtn.addEventListener('click', () => {
-      dropSession('Сессия завершена. Авторизуйтесь для доступа к админке.');
-      loginForm.reset();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-
-    document.getElementById('saveApiBase').addEventListener('click', async () => {
+    document.getElementById('saveApiBase').addEventListener('click', () => {
       const value = apiBaseInput.value.trim();
       if (!value) return;
       localStorage.setItem('gth_api_base', value);
       apiBaseHint.textContent = 'Сохранено.';
-      const ok = await runHealthCheck(true);
-      if (ok) {
-        loadItems();
-        loadStats();
-        loadTrends();
-        loadSettings();
-      }
+      loadItems();
+      loadStats();
+      loadTrends();
+      loadSettings();
     });
 
     document.getElementById('checkHealth').addEventListener('click', async () => {
-      const ok = await runHealthCheck(true);
-      if (ok) {
-        loadItems();
-        loadStats();
-        loadTrends();
-        loadSettings();
+      healthStatus.textContent = 'Проверяем...';
+      try {
+        const res = await fetch(`${apiBaseInput.value}/api/health`);
+        const data = await res.json();
+        if (data.status === 'ok') {
+          healthStatus.textContent = 'OK';
+          healthStatus.className = 'text-sm text-emerald-600';
+        } else {
+          healthStatus.textContent = 'Ответ не распознан';
+          healthStatus.className = 'text-sm text-amber-600';
+        }
+      } catch (error) {
+        healthStatus.textContent = 'Ошибка соединения';
+        healthStatus.className = 'text-sm text-rose-600';
       }
     });
 
     async function loadItems() {
       itemsTable.innerHTML = '<tr><td colspan="5" class="px-3 py-3 text-slate-500">Загрузка...</td></tr>';
       clearDetails();
-      if (!apiBaseInput.value) {
-        itemsTable.innerHTML = '<tr><td colspan="5" class="px-3 py-3 text-slate-500">Укажите API базу и нажмите «Сохранить».</td></tr>';
-        return;
-      }
       const query = statusFilter.value ? `?status=${encodeURIComponent(statusFilter.value)}` : '';
       try {
-        const res = await authFetch(`${apiBaseInput.value}/api/products${query}`);
+        const res = await fetch(`${apiBaseInput.value}/api/products${query}`);
         const data = await res.json();
         const items = Array.isArray(data.items) ? data.items : [];
         if (!items.length) {
@@ -670,7 +442,7 @@
       detailTitle.textContent = 'Загрузка...';
       detailHistory.innerHTML = '<li class="text-slate-500">Обновляем историю...</li>';
       try {
-        const res = await authFetch(`${apiBaseInput.value}/api/products/${itemId}`);
+        const res = await fetch(`${apiBaseInput.value}/api/products/${itemId}`);
         const data = await res.json();
         if (!res.ok || !data.item) {
           detailTitle.textContent = data.error || 'Не удалось загрузить товар';
@@ -701,9 +473,8 @@
     }
 
     async function loadStats() {
-      if (!apiBaseInput.value) return;
       try {
-        const res = await authFetch(`${apiBaseInput.value}/api/stats`);
+        const res = await fetch(`${apiBaseInput.value}/api/stats`);
         const data = await res.json();
         if (!res.ok) return;
         statTotal.textContent = data.summary?.total ?? '0';
@@ -724,9 +495,8 @@
     }
 
     async function loadTrends() {
-      if (!apiBaseInput.value) return;
       try {
-        const res = await authFetch(`${apiBaseInput.value}/api/trends`);
+        const res = await fetch(`${apiBaseInput.value}/api/trends`);
         const data = await res.json();
         const added = Array.isArray(data.added) ? data.added : [];
         const sold = Array.isArray(data.sold) ? data.sold : [];
@@ -743,9 +513,8 @@
     }
 
     async function loadSettings() {
-      if (!apiBaseInput.value) return;
       try {
-        const res = await authFetch(`${apiBaseInput.value}/api/settings`);
+        const res = await fetch(`${apiBaseInput.value}/api/settings`);
         const data = await res.json();
         const settings = data.settings || {};
         rapidApiKeyInput.value = settings.rapidApiKey ?? '';
@@ -788,7 +557,7 @@
           hint.className = 'text-xs text-slate-500';
         }
         try {
-          const res = await authFetch(`${apiBaseInput.value}/api/products/${itemId}`, { method: 'DELETE' });
+          const res = await fetch(`${apiBaseInput.value}/api/products/${itemId}`, { method: 'DELETE' });
           const data = await res.json();
           if (res.ok) {
             if (hint) {
@@ -819,7 +588,7 @@
       }
 
       try {
-        const res = await authFetch(`${apiBaseInput.value}/api/products/${itemId}`, {
+        const res = await fetch(`${apiBaseInput.value}/api/products/${itemId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: select.value, statusNote: noteInput?.value || undefined }),
@@ -861,7 +630,7 @@
       if (payload.listingPriceUsd === '') delete payload.listingPriceUsd;
       if (payload.sourceUrl === '') delete payload.sourceUrl;
       try {
-        const res = await authFetch(`${apiBaseInput.value}/api/products`, {
+        const res = await fetch(`${apiBaseInput.value}/api/products`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -883,7 +652,7 @@
       event.preventDefault();
       settingsHint.textContent = 'Сохраняем...';
       try {
-        const res = await authFetch(`${apiBaseInput.value}/api/settings`, {
+        const res = await fetch(`${apiBaseInput.value}/api/settings`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ settings: {
@@ -902,14 +671,10 @@
 
     closeDetails.addEventListener('click', () => clearDetails());
 
-    const restored = restoreSession();
-    if (restored?.user && restored?.token) {
-      loginHint.textContent = `Сессия восстановлена для ${restored.user.username}`;
-      loginHint.className = 'text-sm text-emerald-600';
-      enterAdmin(restored.user);
-    } else {
-      requireLogin('Войдите, зарегистрируйтесь или используйте Telegram.');
-    }
+    loadItems();
+    loadStats();
+    loadTrends();
+    loadSettings();
   </script>
 </body>
 </html>
