@@ -2,12 +2,6 @@ name = "game-trade-hub-worker"
 main = "src/index.ts"
 compatibility_date = "2024-05-02"
 
-[vars]
-# Укажите реальные значения через `wrangler secret put` или экспортируйте переменные окружения
-# перед деплоем; здесь оставляем заглушки для явного объявления ключей.
-RAPIDAPI_KEY = "set_via_secret_or_env"
-TELEGRAM_BOT_TOKEN = "set_via_secret_or_env"
-
 [[d1_databases]]
 binding = "DB"
 database_name = "game-trade-hub"
