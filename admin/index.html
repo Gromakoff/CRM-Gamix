@@ -25,7 +25,7 @@
     </div>
   </header>
 
-  <section id="authSection" class="max-w-3xl mx-auto px-4 py-10">
+    <section id="authSection" class="max-w-3xl mx-auto px-4 py-10">
     <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 space-y-4">
       <div class="flex items-start justify-between gap-4">
         <div>
@@ -44,91 +44,24 @@
           <input id="loginPassword" name="password" type="password" class="w-full rounded-lg border-slate-200 focus:border-indigo-400 focus:ring-indigo-200" placeholder="••••••" required />
         </div>
         <div class="md:col-span-2 flex items-center justify-between">
-          <p id="loginHint" class="text-sm text-slate-500">Войдите под готовой учёткой или зарегистрируйтесь ниже.</p>
+          <p id="loginHint" class="text-sm text-slate-500">Войдите под готовой учёткой или зарегистрируйтесь на отдельной странице.</p>
           <button id="loginSubmit" class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-500">Войти</button>
         </div>
       </form>
       <div class="md:col-span-2 flex flex-col md:flex-row md:items-center md:justify-between gap-2 text-sm text-slate-600">
         <div class="flex items-center gap-2">
           <span class="text-slate-500">Нет доступа?</span>
-          <a href="#registerBlock" class="text-indigo-600 hover:text-indigo-500 font-medium">Зарегистрируйтесь</a>
+          <a href="/register.html" class="text-indigo-600 hover:text-indigo-500 font-medium">Регистрация через email</a>
         </div>
         <div class="flex items-center gap-2">
-          <span class="text-slate-500">Хотите войти через Telegram?</span>
-          <a href="#telegramBlock" class="text-indigo-600 hover:text-indigo-500 font-medium">Использовать Telegram Login</a>
+          <span class="text-slate-500">Нужен Telegram?</span>
+          <a href="/register-telegram.html" class="text-indigo-600 hover:text-indigo-500 font-medium">Регистрация через Telegram</a>
         </div>
       </div>
     </div>
   </section>
 
-  <section id="registerBlock" class="max-w-3xl mx-auto px-4 pb-6 -mt-6">
-    <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 space-y-4">
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <p class="text-sm font-medium text-slate-700">Регистрация администратора/пользователя</p>
-          <p class="text-sm text-slate-600">Первая учётка становится админом автоматически, остальные получают роль trader.</p>
-        </div>
-        <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs">Д1 уже подключена</span>
-      </div>
-      <form id="registerForm" class="grid md:grid-cols-2 gap-3">
-        <div>
-          <label class="block text-sm text-slate-600 mb-1" for="registerEmail">Email или username</label>
-          <input id="registerEmail" name="email" type="text" class="w-full rounded-lg border-slate-200 focus:border-indigo-400 focus:ring-indigo-200" placeholder="you@example.com" required />
-        </div>
-        <div>
-          <label class="block text-sm text-slate-600 mb-1" for="registerPassword">Пароль</label>
-          <input id="registerPassword" name="password" type="password" class="w-full rounded-lg border-slate-200 focus:border-indigo-400 focus:ring-indigo-200" placeholder="••••••" required />
-        </div>
-        <div class="md:col-span-2 flex items-center justify-between">
-          <p id="registerHint" class="text-sm text-slate-500">Данные пишутся в таблицу users в D1.</p>
-          <button id="registerSubmit" class="px-4 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-500">Создать аккаунт</button>
-        </div>
-      </form>
-    </div>
-  </section>
-
-  <section id="telegramBlock" class="max-w-3xl mx-auto px-4 pb-10 -mt-4">
-    <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 space-y-4">
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <p class="text-sm font-medium text-slate-700">Быстрый вход через Telegram</p>
-          <p class="text-sm text-slate-600">Вставьте payload Telegram Login Widget. Первый Telegram-пользователь тоже станет админом.</p>
-        </div>
-        <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs">Нужен токен бота</span>
-      </div>
-      <form id="telegramForm" class="grid md:grid-cols-2 gap-3">
-        <div>
-          <label class="block text-sm text-slate-600 mb-1" for="telegramId">Telegram user id</label>
-          <input id="telegramId" name="telegramId" type="number" class="w-full rounded-lg border-slate-200 focus:border-indigo-400 focus:ring-indigo-200" placeholder="123456789" required />
-        </div>
-        <div>
-          <label class="block text-sm text-slate-600 mb-1" for="telegramUsername">Username</label>
-          <input id="telegramUsername" name="telegramUsername" type="text" class="w-full rounded-lg border-slate-200 focus:border-indigo-400 focus:ring-indigo-200" placeholder="nickname" />
-        </div>
-        <div>
-          <label class="block text-sm text-slate-600 mb-1" for="telegramAuthDate">auth_date (epoch)</label>
-          <input id="telegramAuthDate" name="telegramAuthDate" type="number" class="w-full rounded-lg border-slate-200 focus:border-indigo-400 focus:ring-indigo-200" placeholder="1700000000" required />
-        </div>
-        <div>
-          <label class="block text-sm text-slate-600 mb-1" for="telegramHash">hash</label>
-          <input id="telegramHash" name="telegramHash" type="text" class="w-full rounded-lg border-slate-200 focus:border-indigo-400 focus:ring-indigo-200" placeholder="Хеш из Telegram" required />
-        </div>
-        <div class="md:col-span-2">
-          <label class="block text-sm text-slate-600 mb-1" for="telegramFirstName">first_name / last_name (опционально)</label>
-          <div class="grid md:grid-cols-2 gap-2">
-            <input id="telegramFirstName" name="telegramFirstName" type="text" class="w-full rounded-lg border-slate-200 focus:border-indigo-400 focus:ring-indigo-200" placeholder="Имя" />
-            <input id="telegramLastName" name="telegramLastName" type="text" class="w-full rounded-lg border-slate-200 focus:border-indigo-400 focus:ring-indigo-200" placeholder="Фамилия" />
-          </div>
-        </div>
-        <div class="md:col-span-2 flex items-center justify-between">
-          <p id="telegramHint" class="text-sm text-slate-500">Нужен TELEGRAM_BOT_TOKEN и @username бота, чтобы получать валидный payload.</p>
-          <button id="telegramSubmit" class="px-4 py-2 bg-sky-600 text-white text-sm rounded-lg hover:bg-sky-500">Войти через Telegram</button>
-        </div>
-      </form>
-    </div>
-  </section>
-
-  <main id="adminShell" class="max-w-6xl mx-auto px-4 py-8 space-y-8" hidden>
+<main id="adminShell" class="max-w-6xl mx-auto px-4 py-8 space-y-8" hidden>
     <section id="dashboard" class="bg-white rounded-xl shadow-sm p-6">
       <h2 class="text-lg font-semibold mb-2">Обзор</h2>
       <div class="grid gap-4 md:grid-cols-2">
@@ -378,18 +311,6 @@
     const loginHint = document.getElementById('loginHint');
     const loginEmail = document.getElementById('loginEmail');
     const loginPassword = document.getElementById('loginPassword');
-    const registerForm = document.getElementById('registerForm');
-    const registerEmail = document.getElementById('registerEmail');
-    const registerPassword = document.getElementById('registerPassword');
-    const registerHint = document.getElementById('registerHint');
-    const telegramForm = document.getElementById('telegramForm');
-    const telegramId = document.getElementById('telegramId');
-    const telegramUsername = document.getElementById('telegramUsername');
-    const telegramAuthDate = document.getElementById('telegramAuthDate');
-    const telegramHash = document.getElementById('telegramHash');
-    const telegramFirstName = document.getElementById('telegramFirstName');
-    const telegramLastName = document.getElementById('telegramLastName');
-    const telegramHint = document.getElementById('telegramHint');
     const sessionUser = document.getElementById('sessionUser');
     const logoutBtn = document.getElementById('logoutBtn');
     const apiBaseInput = document.getElementById('apiBase');
@@ -521,16 +442,6 @@
           'loginEmail',
           'loginPassword',
           'loginSubmit',
-          'registerEmail',
-          'registerPassword',
-          'registerSubmit',
-          'telegramId',
-          'telegramUsername',
-          'telegramAuthDate',
-          'telegramHash',
-          'telegramFirstName',
-          'telegramLastName',
-          'telegramSubmit',
         ];
         if (skipIds.includes(el.id)) return;
         el.toggleAttribute('disabled', disabled);
@@ -672,84 +583,6 @@
       } catch (error) {
         loginHint.textContent = 'Не удалось подключиться к API. Проверьте адрес или CORS.';
         loginHint.className = 'text-sm text-rose-600';
-      }
-    });
-
-    registerForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const email = registerEmail.value.trim().toLowerCase();
-      const password = registerPassword.value;
-      if (!apiBaseInput.value) {
-        registerHint.textContent = 'Сначала укажите API базу и нажмите «Сохранить».';
-        registerHint.className = 'text-sm text-rose-600';
-        return;
-      }
-      registerHint.textContent = 'Создаём пользователя...';
-      registerHint.className = 'text-sm text-slate-600';
-      try {
-        const res = await fetch(`${apiBaseInput.value}/api/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
-        const data = await res.json();
-        if (res.ok && data.token && data.user) {
-          saveSession(data.user, data.token, data.expiresAt);
-          registerHint.textContent = data.message || 'Создано. Открываем админку...';
-          registerHint.className = 'text-sm text-emerald-600';
-          enterAdmin(data.user);
-        } else {
-          registerHint.textContent = data.error || 'Не удалось зарегистрироваться.';
-          registerHint.className = 'text-sm text-rose-600';
-        }
-      } catch (error) {
-        registerHint.textContent = 'Ошибка соединения с API.';
-        registerHint.className = 'text-sm text-rose-600';
-      }
-    });
-
-    telegramForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const id = Number(telegramId.value);
-      const authDate = Number(telegramAuthDate.value);
-      const hash = telegramHash.value.trim();
-      const username = telegramUsername.value.trim();
-      const first_name = telegramFirstName.value.trim();
-      const last_name = telegramLastName.value.trim();
-
-      if (!apiBaseInput.value) {
-        telegramHint.textContent = 'Сначала укажите API базу и нажмите «Сохранить».';
-        telegramHint.className = 'text-sm text-rose-600';
-        return;
-      }
-      if (!id || !authDate || !hash) {
-        telegramHint.textContent = 'Укажите id, auth_date и hash из Telegram Login Widget.';
-        telegramHint.className = 'text-sm text-rose-600';
-        return;
-      }
-
-      telegramHint.textContent = 'Проверяем подпись Telegram...';
-      telegramHint.className = 'text-sm text-slate-600';
-
-      try {
-        const res = await fetch(`${apiBaseInput.value}/api/telegram/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, auth_date: authDate, hash, username, first_name, last_name }),
-        });
-        const data = await res.json();
-        if (res.ok && data.token && data.user) {
-          saveSession(data.user, data.token, data.expiresAt);
-          telegramHint.textContent = data.message || 'Telegram вход выполнен. Загружаем данные...';
-          telegramHint.className = 'text-sm text-emerald-600';
-          enterAdmin(data.user);
-        } else {
-          telegramHint.textContent = data.error || 'Не удалось авторизоваться через Telegram.';
-          telegramHint.className = 'text-sm text-rose-600';
-        }
-      } catch (error) {
-        telegramHint.textContent = 'Ошибка соединения с API. Проверьте TELEGRAM_BOT_TOKEN.';
-        telegramHint.className = 'text-sm text-rose-600';
       }
     });
 
